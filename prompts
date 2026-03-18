@@ -1,0 +1,192 @@
+------------------------------------------------------------------------------------------------for sql editor-----------------------------------------------------------------------
+
+Create the Orders System in Supabase ///////////////////////////////////////
+-- Create orders table
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_name text not null,
+  phone text not null,
+  email text,
+  city text not null,
+  address text not null,
+  country text default 'United States',
+  product_name text not null,
+  product_variant text,
+  quantity int not null default 1,
+  notes text,
+  status text not null default 'pending',  -- pending, confirmed, shipped, cancelled
+  created_at timestamptz default now()
+);
+
+-- Enable RLS
+alter table public.orders enable row level security;
+
+-------------------------------------------------------------------------------
+
+Create profiles table ///////////////////////////////////////
+
+
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  role text not null default 'user'
+);
+
+-- Enable RLS
+alter table public.profiles enable row level security;
+
+-------------------------------------------------------------------------------
+
+security policy (profiles read policy) /////////////////////
+
+-- Profiles are readable by owner
+create policy "Profiles are readable by owner"
+on public.profiles
+for select
+to authenticated
+using (auth.uid() = user_id);
+-------------------------------------------------------------------------------
+
+
+Public Order Insert Policy /////////////////////
+
+-- Public can create orders
+create policy "Public can create orders"
+on public.orders
+for insert
+to anon
+with check (
+  status = 'pending'
+);
+---------------------------------------------------------------------------------------
+
+Admin View Orders Policy /////////////////////
+
+-- Admins can view all orders
+create policy "Admins can view all orders"
+on public.orders
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.user_id = auth.uid()
+      and profiles.role = 'admin'
+  )
+);
+
+---------------------------------------------------------------------------------------
+
+Admin Update Orders Policy  /////////////////////
+
+-- Admins can update all orders
+create policy "Admins can update all orders"
+on public.orders
+for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.user_id = auth.uid()
+      and profiles.role = 'admin'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.user_id = auth.uid()
+      and profiles.role = 'admin'
+  )
+);
+
+
+------------------------------------------------------------------------------------------------for Build the Store with an Order Form-----------------------------------------------------------------------
+
+Prompt 1 — Generate Store + Order Form
+
+You are building a web app INSIDE this Google AI Studio project.
+
+Task:
+Create a beautiful, premium, light-mode single-page Cash-on-Delivery (COD) store TEMPLATE (one product) that is simple and beginner-friendly to customize.
+
+IMPORTANT OUTPUT RULES:
+- Do NOT paste the full HTML/CSS/JS code in the chat.
+- Instead, create/update the project files directly.
+- After you finish, reply with:
+  1) A short bullet summary of what you built
+  2) Where beginners should edit the template (the exact variables/sections)
+
+Design (Light Mode):
+- Clean white / soft light gray background with a subtle pastel gradient.
+- Modern premium SaaS look (Apple/Stripe style).
+- Elegant spacing, rounded corners, soft shadows.
+- Looks great on mobile.
+
+Template placeholders (make them easy to edit):
+- STORE_NAME: "YOUR STORE NAME"
+- PRODUCT_NAME: "YOUR PRODUCT NAME"
+- PRODUCT_DESCRIPTION: "YOUR PRODUCT DESCRIPTION"
+- PRICE_PER_UNIT: 49
+- CURRENCY: "USD"
+- Variants: "Variant A", "Variant B", "Variant C"
+- Default country: "United States"
+
+Sections to include (keep it simple):
+1) Header (store name + link scroll to “How COD Works”)
+2) Hero (product name, description, CTA buttons)
+3) Benefits (3 cards)
+4) How COD Works (3 steps)
+5) Order Form (most important) + Order Summary (price x quantity)
+6) FAQ (3 items)
+7) Footer
+
+Supabase (INSERT only):
+- Use Supabase JS client.
+- Use placeholders:
+  SUPABASE_URL = "{{SUPABASE_URL}}"
+  SUPABASE_PUBLISHABLE_KEY = "{{SUPABASE_PUBLISHABLE_KEY}}"
+- On form submit: INSERT into table "orders" with:
+  customer_name, phone, email, city, address, country,
+  product_name, product_variant, quantity, notes, status="pending"
+
+Critical rules:
+- INSERT only. Do NOT use select/update/delete.
+- Show success banner on success, generic error banner on failure.
+- Validate required fields with small inline errors.
+- Disable the submit button while sending.
+
+Now build it inside the project so I can run it immediately.
+
+
+------------------------------------------------------------------------------------------------for Create the Admin Dashboard-----------------------------------------------------------------------
+
+You are an expert full-stack engineer.
+
+Build a modern admin dashboard for managing Cash-on-Delivery (COD) orders using Supabase.
+
+Use the following Supabase credentials:
+
+SUPABASE_URL = "{{SUPABASE_URL}}"
+SUPABASE_KEY = "{{SUPABASE_KEY}}"
+
+The database contains a table called:
+
+orders
+
+Fields include:
+customer_name, email, phone, city, address, product_variant, quantity, status, created_at.
+
+The dashboard should allow an admin to:
+
+• log in  
+• view order statistics  
+• see recent orders  
+• search and filter orders  
+• update order status  
+• customize the application name in settings
+
+Design it as a clean modern SaaS dashboard with a light Apple-style UI.
+
+Keep the implementation simple and produce a fully working result.
